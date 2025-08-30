@@ -1,0 +1,71 @@
+graph TB
+    %% External Components
+    User[👤 User]
+    GitLabDocs[📚 GitLab Documentation<br/>- Handbook<br/>- Direction Pages]
+    GeminiAPI[🤖 Google Gemini 1.5 Flash API]
+    
+    %% Data Layer
+    subgraph DataLayer [Data Layer]
+        HandbookFile[📄 handbook_cleaned_FULL.txt]
+        DirectionFile[📄 direction_final.txt]
+        FAISSIndex[(🗄️ FAISS Vector Store<br/>index.faiss + index.pkl)]
+    end
+    
+    %% Processing Layer
+    subgraph ProcessingLayer ["Processing & Embedding Layer"]
+        TextSplitter[RecursiveCharacterTextSplitter<br/>chunk_size: 750<br/>overlap: 150]
+        Embeddings[🧠 HuggingFace Embeddings<br/>all-MiniLM-L6-v2]
+        VectorBuilder[⚙️ build_vector_store.py ]
+
+    end
+    
+    %% Application Layer
+    subgraph AppLayer [Application Layer]
+        StreamlitUI[🖥️ Streamlit Frontend<br/>chatApp.py]
+        
+        subgraph LangChainComponents [LangChain Components]
+            Retriever[🔍 FAISS Retriever<br/>MMR Search<br/>k=8, fetch_k=18]
+            Memory[🧠 ConversationSummaryBufferMemory]
+            PromptTemplate[📝 Custom Prompt Template]
+            QAChain[🔗 ConversationalRetrievalChain]
+        end
+    end
+    
+    %% Connections - Data Flow
+    GitLabDocs --> HandbookFile
+    GitLabDocs --> DirectionFile
+    
+    HandbookFile --> VectorBuilder
+    DirectionFile --> VectorBuilder
+    VectorBuilder --> TextSplitter
+    TextSplitter --> Embeddings
+    Embeddings --> FAISSIndex
+    
+    %% Runtime Connections
+    User --> StreamlitUI
+    StreamlitUI --> QAChain
+    QAChain --> Retriever
+    QAChain --> Memory
+    QAChain --> PromptTemplate
+    QAChain --> GeminiAPI
+    
+    Retriever --> FAISSIndex
+    FAISSIndex --> Retriever
+    
+    %% Response Flow
+    GeminiAPI --> QAChain
+    QAChain --> StreamlitUI
+    StreamlitUI --> User
+    
+    %% Styling
+    classDef userClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000,font-weight:bold;
+    classDef dataClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000,font-weight:bold;
+    classDef processClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000,font-weight:bold;
+    classDef appClass fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000000,font-weight:bold;
+    classDef apiClass fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000000,font-weight:bold;
+    
+    class User userClass
+    class HandbookFile,DirectionFile,FAISSIndex dataClass
+    class TextSplitter,Embeddings,VectorBuilder processClass
+    class StreamlitUI,Retriever,Memory,PromptTemplate,QAChain appClass
+    class GeminiAPI,GitLabDocs apiClass

@@ -1,0 +1,64 @@
+flowchart TD
+    Start(["🚀 Application Start"]) --> LoadConfig["🔧 Load Streamlit Config<br>Page Setup"]
+    LoadConfig --> CheckAPI{"🔐 Google API Key<br>Available?"}
+    
+    CheckAPI -->|No| ErrorAPI["❌ Display API Error<br>Stop Application"]
+    CheckAPI -->|Yes| LoadVectorStore["📚 Load FAISS Vector Store<br>@st.cache_resource"]
+    
+    LoadVectorStore --> InitComponents["⚙️ Initialize Components:<br>- Gemini LLM<br>- Memory Buffer<br>- Retriever (MMR)<br>- QA Chain"]
+    
+    InitComponents --> DisplayUI["🖥️ Render Streamlit UI:<br>- Title & Description<br>- Chat History<br>- Input Field"]
+    
+    DisplayUI --> WaitInput["⏳ Wait for User Input"]
+    
+    WaitInput --> UserQuery{"💬 User Query<br>Received?"}
+    UserQuery -->|No| WaitInput
+    UserQuery -->|Yes| DisplayUserMsg["👤 Display User Message<br>in Chat"]
+    
+    DisplayUserMsg --> ShowSpinner["⏳ Show Spinner:<br>🤖 Thinking..."]
+    ShowSpinner --> ProcessQuery["🔄 Process Query through<br>ConversationalRetrievalChain"]
+    
+    ProcessQuery --> RetrieveContext["🔍 Retrieve Relevant Context:<br>- Search FAISS with MMR<br>- Get top 8 chunks<br>- Include metadata"]
+    
+    RetrieveContext --> PreparePrompt["📝 Prepare Prompt:<br>- Context from retrieval<br>- User question<br>- Chat history from memory"]
+    
+    PreparePrompt --> CallGemini["🤖 Call Gemini 1.5 Flash API<br>with prepared prompt"]
+    
+    CallGemini --> Success{"✅ API Call<br>Successful?"}
+    
+    Success -->|No| DisplayError["❌ Display Error Message<br>Exception Details"]
+    Success -->|Yes| DisplayResponse["🤖 Display Bot Response<br>in Chat"]
+    
+    DisplayResponse --> ShowSources["📚 Show Sources in Expander:<br>- Document metadata<br>- Section information<br>- Content preview"]
+    
+    ShowSources --> UpdateMemory["🧠 Update Conversation Memory<br>with Q&A pair"]
+    UpdateMemory --> UpdateHistory["📝 Update Session State<br>Chat History"]
+    
+    UpdateHistory --> WaitInput
+    DisplayError --> WaitInput
+    
+    %% Memory Management Subprocess
+    subgraph MemoryMgmt ["Memory Management"]
+        MemoryCheck{"🧠 Memory Buffer<br>Full?"}
+        MemoryCheck -->|Yes| Summarize["📄 Summarize Old<br>Conversations"]
+        MemoryCheck -->|No| KeepMemory["💾 Keep All Memory"]
+        Summarize --> KeepMemory
+    end
+    
+    UpdateMemory --> MemoryMgmt
+    MemoryMgmt --> UpdateHistory
+    
+    %% Styling
+    classDef startEnd fill:#e8f5e8,stroke:#2e7d32,stroke-width:3px,color:#000000,font-weight:bold;
+    classDef process fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000000,font-weight:bold;
+    classDef decision fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000,font-weight:bold;
+    classDef error fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#000000,font-weight:bold;
+    classDef memory fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000000,font-weight:bold;
+    classDef user fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000000,font-weight:bold;
+    
+    class Start,ErrorAPI startEnd
+    class LoadConfig,LoadVectorStore,InitComponents,DisplayUI,ProcessQuery,RetrieveContext,PreparePrompt,CallGemini,DisplayResponse,ShowSources,UpdateHistory process
+    class CheckAPI,UserQuery,Success,MemoryCheck decision
+    class DisplayError error
+    class UpdateMemory,Summarize,KeepMemory memory
+    class DisplayUserMsg,ShowSpinner,WaitInput user
