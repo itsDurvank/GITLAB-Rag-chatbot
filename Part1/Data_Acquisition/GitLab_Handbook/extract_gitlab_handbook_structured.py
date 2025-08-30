@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 HANDBOOK_DIR = "Part1/Data_Acquisition/raw_data/Handbook/content"
-OUTPUT_FILE = "Part1\data\handbook_cleaned.txt"
+OUTPUT_FILE = "Part1/data/handbook_cleaned.txt"
 
 def clean_markdown(text):
     # Remove YAML frontmatter
